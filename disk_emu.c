@@ -93,6 +93,9 @@ int init_disk(char *filename, int block_size, int num_blocks)
 /*-------------------------------------------------------------------*/
 /*Reads a series of blocks from the disk into the buffer             */
 /*-------------------------------------------------------------------*/
+
+// Note: start_address is the block number, not the disk address
+
 int read_blocks(int start_address, int nblocks, void *buffer)
 {
     int i, j, e, s;
