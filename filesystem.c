@@ -4,7 +4,7 @@
 struct fileDescriptor fileDescriptorTable[MAX_FILE_DESCRIPTORS];
 int fileDescriptorTableLength = -1; // Refers to the last array index
 
-int block_size;
+int block_size = 1024;
 
 
 void mksfs(int fresh) {
@@ -23,14 +23,17 @@ typedef struct compositeAddress {
 
 
 // Converts virutal address in file to a combination of block number and block address
-cad fileAddresstoBlockAddress(void *ptr) {
+cad virtualAddresstoBlockAddress(void *ptr) {
 	cad ca;
 
 	ca.block_num = (int) ptr / block_size;
 	ca.block_offset = (int) ptr % block_size;
 }
 
-int overwrite_block(block_ptr block_num, int block_offset, void *buffer, int length) {
+// being generic over selective_write and selective_read
+typedef int block_function(block_ptr block_num, int block_offset, void *buffer, int length);
+
+int selective_write(block_ptr block_num, int block_offset, void *buffer, int length) {
 
 	if(length == block_size) {
 		return write_blocks(block_num, 1, buffer);
@@ -51,29 +54,48 @@ int overwrite_block(block_ptr block_num, int block_offset, void *buffer, int len
 
 }
 
+int selective_read(block_ptr block_num, int block_offset, void *buffer, int length) {
 
-int sfs_fwrite(int fileID, char *buf, int length) {
+	// Read contents of block into mycoolbuffer
+	void *mycoolbuffer = (void*) malloc(block_size);
+	read_blocks(block_num, 1, mycoolbuffer);
+
+	// Selectively copy mycoolbuffer into buffer
+	memcpy(buffer, mycoolbuffer + block_offset, length);
+
+	return 1;
+}
+
+int apply_to_blocks(block_function f, int fileID, char *buf, int length) {
+
 	struct FileDescriptor fd = fileDescriptorTable[fileID];
 	
-	cad caFrom = fileAddressToBlockAddress(fd.write_ptr);
-	cad caTo = fileAddressToBlockAddress(fd.write_ptr + length);
+	cad caFrom = virtualAddressToBlockAddress(fd.write_ptr);
+	cad caTo = virtualAddressToBlockAddress(fd.write_ptr + length);
 
-	// This can be refactored into something that makes a at most thr
 	for(int block = caFrom.block_num; block <= caTo.block_num; block++) {
 
 		block_ptr physical_block = inode_mark_virtual_block(fd.inode, block);
 
 		if(block == caFrom.block_num) {
-			overwrite_block(block, caFrom.block_offset, buf, block_size - block_offset);
+			f(physical_block, caFrom.block_offset, buf, block_size - block_offset);
 			buf += block_size - block_offset;
 		} else if(block == caTo.block_num) {
-			overwrite_block(block, 0, buf, block_offset);
+			f(physical_block, 0, buf, block_offset);
 			buf += block_offset;
 		} else {
-			overwrite_block(block, 0, buf, block_size);
+			f(physical_block, 0, buf, block_size);
 			buf += block_size;
 		}
 	}
+}
+
+int sfs_fwrite(int fileID, char *buf, int length) {
+	return apply_to_blocks(selective_write, fileID, buf, length);
+}
+
+int sfs_fread(int fileID, char *buf, int length) {
+	return apply_to_blocks(selective_read, fileID, buf, length);
 }
 
 int sfs_fwseek(int fileID, int loc) {

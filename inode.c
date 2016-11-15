@@ -4,24 +4,32 @@
 
 // #include "bitmask.h"
 
+
+// Put this in bitmask
 block_ptr allocate_new_block() {
 	return 4; // fair dice roll
 }
+///////
 
 block_ptr *inode_corrresponding_physical_block(struct inode *inode, int block_num) {
-
-	// Filter if block_num > 12 + (int) (block_size / sizeof(int))
 
 	if(block_num < 12) {
 		return &inode->direct_block[block_num];
 	}
 
+	// Filter if block_num > 12 + (int) (block_size / sizeof(int))
+
 	block_ptr *this_sick_buffer = (inode*) malloc(block_size);
+
+	// Create indirection block 
+	if(!inode->indirect_block) {
+		inode->indirect_block = allocate_new_block();
+	}
 
 	// Read the indirect block pointer
 	read_blocks(inode->indirect_block, 1, this_sick_buffer);
 	
-	block_ptr bp = this_sick_buffer[block_num - 12]
+	block_ptr bp = &this_sick_buffer[block_num - 12]
 	free(this_sick_buffer);
 
 	return bp;
@@ -31,9 +39,14 @@ block_ptr *inode_corrresponding_physical_block(struct inode *inode, int block_nu
 // Returns the physical block corresponding to the given virtual block
 // of this inode, and allocates the block if necessary.
 block_ptr inode_mark_virtual_block(struct inode *inode, int block_num) {
+
+	block_ptr *bp = inode_corresponding_physical_block(inode, block_num);
+
+	if((*bp) == 0) {
+		(*bp) = allocate_new_block();
+	}
 	
-	inode->
-	
+	return *bp;
 }
 
 
