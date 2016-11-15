@@ -8,11 +8,11 @@ struct aa_pair {
 
 struct aa_array {
 	struct aa_pair array[];
-	int max_length;
-	int tail;
+	int length;
 }
 
 struct aa_array cast_to_aa(char *buff, int buff_length);
-inode_index aa_lookup(struct aa_array *aa, char *filename);
-int aa_insert(struct aa_array *aa, struct aa_pair pair);
-int aa_remove(struct aa_array *aa, struct aa_pair pair);
+
+inode_ind aa_lookup(struct aa_array, char *filename);
+int aa_insert(struct aa_array, char *filename, inode_index inode_ind);
+aa_pair *aa_enumerate(struct aa_array);

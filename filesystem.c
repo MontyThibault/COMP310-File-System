@@ -98,6 +98,17 @@ int sfs_fread(int fileID, char *buf, int length) {
 	return apply_to_blocks(selective_read, fileID, buf, length);
 }
 
+char *sfs_fread_all(int fileID) {
+	struct FileDescriptor fd = fileDescriptorTable[fileID];
+	char *buf = (char*) malloc(length);
+
+	if(!sfs_fread(fildID, buf, fd->length)) {
+		return 0;
+	} else {
+		return buf;
+	}
+}
+
 int sfs_fwseek(int fileID, int loc) {
 	if(fileID > fileDescriptorTableLength) {
 		return 0;
