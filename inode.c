@@ -5,12 +5,45 @@
 // #include "bitmask.h"
 
 
-// Put this in bitmask
-block_ptr allocate_new_block() {
-	return 4; // fair dice roll
-}
-///////
+// Modified the char pointer and returns the index of the bit
+// which was modified, i.e. 128 = 0, 64 = 1, 32 = 2, 16 = 3...
+int fill_first_empty_bit_in_char(char *c) {
 
+	int n = 0,
+	    m = *c,
+	    s = 128;
+
+	while(m >= s) {
+		m -= s;
+		s /= 2;
+		n++;
+	}
+
+	*c += s;
+	return n;
+}
+
+
+block_ptr allocate_new_block() {
+
+	char *info = sfs_fread_all(FD_FREE_BLOCKS);
+	int len = fileDescriptorTable[FD_FREE_BLOCKS]->length;
+
+	// Search for first non-full char
+	int i = 0;
+	while(info[i] == 255) { 
+		i++;
+	}
+
+	// Insert a bit
+	int n = fill_first_empty_bit_in_char(&info[i]);
+
+	return (i * 8) + n;
+}
+
+
+// Converts virtual block number (block_num) to physical block number, and 
+// allocates the indirection block if necessary
 block_ptr *inode_corrresponding_physical_block(struct inode *inode, int block_num) {
 
 	if(block_num < 12) {
@@ -49,5 +82,13 @@ block_ptr inode_mark_virtual_block(struct inode *inode, int block_num) {
 	return *bp;
 }
 
+
+struct inode inode_lookup_inode(char *buf, int buf_length, inode_ind ind) {
+
+}
+
+int inode_remove_inode(char *buf, int buf_length, inode_ind ind) {
+
+}
 
 

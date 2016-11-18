@@ -2,7 +2,11 @@
 
 #define MAX_FILE_DESCRIPTORS 10
 struct fileDescriptor fileDescriptorTable[MAX_FILE_DESCRIPTORS];
-int fileDescriptorTableLength = -1; // Refers to the last array index
+int fileDescriptorTableLength = 2; // Refers to the last array index
+
+#define FD_ROOT_DIR 0
+#define FD_INODE_TABLE 1
+#define FD_FREE_BLOCKS 2
 
 int block_size = 1024;
 
@@ -13,6 +17,10 @@ void mksfs(int fresh) {
 	} else {
 
 	}
+
+
+	// Populate fileDescriptorTable[0/1/2] w/ superblock info
+
 }
 
 
@@ -98,11 +106,15 @@ int sfs_fread(int fileID, char *buf, int length) {
 	return apply_to_blocks(selective_read, fileID, buf, length);
 }
 
+// Remember to free the return pointer
 char *sfs_fread_all(int fileID) {
+
+	sfs_frseek(fileID, 0);
+
 	struct FileDescriptor fd = fileDescriptorTable[fileID];
 	char *buf = (char*) malloc(length);
 
-	if(!sfs_fread(fildID, buf, fd->length)) {
+	if(!sfs_fread(fildID, buf, fd.inode.size)) {
 		return 0;
 	} else {
 		return buf;
@@ -131,21 +143,73 @@ int sfs_frseek(int fileID, int loc) {
 	return 1;
 }
 
-int sfs_open(char *name) {
-	return 0;
+inode_index lookup_file(char *file) {
 
-	// Gets the directory inode, performs a lookup, then initializes file descriptor, and returns the array index
+	char *buf = sfs_fread_all(FD_ROOT_DIR);
+	int length = fileDescriptorTable[FD_ROOT_DIR].inode.size;
+
+	struct aa_array aa = cast_to_aa(buf, length);
+	return aa_lookup(&aa, file);
 }
 
+int sfs_open(char *name) {
+
+	inode_index ind = lookup_file(path);
+	if(ind == -1) return -1;
+
+	buf = sfs_fread_all(FD_INODE_TABLE);	
+	length = fileDescriptorTable[FD_INODE_TABLE].inode.size;
+
+	struct inode inode = inode_lookup_inode(buf, length, ind);
+
+	// create file descriptor
+	struct FileDescriptor fd;
+	fd.inode = inode;
+	fd.read_ptr = 0;
+	fd.write_ptr = 0;
+
+	// push to file descriptor table
+	fileDescriptorTableLength++;
+	fileDescriptorTable[fileDescriptorTableLength] = fd;
+
+	return fileDescriptorTableLength;
+}
+
+
+
+inode_index file_enumerator = 0;
+
 int sfs_getnextfilename(char *fname_buffer) {
+	
+	//// Not valid
+	if(file_enumerator > aa_get_size(file)) {
+		return 0;
+	}
+	//// Not valid
+
+	
+	buf = sfs_fread_all(FD_INODE_TABLE);	
+	length = fileDescriptorTable[FD_INODE_TABLE].inode.size;
+
+	return inode_lookup_inode(buff, length, file_enumerator++);
 
 }
 
 int sfs_getfilesize(const char* path) {
 
+	inode_index ind = lookup_file(path);
+	if(ind == -1) return -1;
+
+	buf = sfs_fread_all(FD_INODE_TABLE);	
+	length = fileDescriptorTable[FD_INODE_TABLE].inode.size;
+
+	struct inode inode = inode_lookup_inode(buf, length, ind);
+	return inode.size;
+
 }
 
 int sfs_fclose(int fileID) {
+
 	if(fileID > fileDescriptorTableLength) {
 		return 0;
 	}
@@ -157,8 +221,17 @@ int sfs_fclose(int fileID) {
 	fileDescriptorTableLength -= 1;
 
 	return 1;
+
 }
 
 int sfs_remove(char *file) {
-	return 0;
+
+	inode_index ind = lookup_file(file);
+	if(ind == -1) return -1;
+
+	buf = sfs_fread_all(FD_INODE_TABLE);	
+	length = fileDescriptorTable[FD_INODE_TABLE].inode.size;
+
+	return inode_remove_inode(buf, length, ind);
+
 }

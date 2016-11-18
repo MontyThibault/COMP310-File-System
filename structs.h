@@ -10,7 +10,7 @@ struct inode {
 
 	block_ptr direct_block[12];
 	block_ptr indirect_block;
-}
+};
 
 
 struct superblock {
@@ -24,16 +24,16 @@ struct superblock {
 	inode root_directory;
 	inode inode_table;
 	inode free_blocks;
-}
+};
 
 
 // We need an in-memory file-descriptor table
 
 struct file_descriptor {
-	inode file;
+	inode inode;
 	int read_ptr;
 	int write_ptr;
-}
+};
 
 
 
