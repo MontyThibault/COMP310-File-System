@@ -1,6 +1,4 @@
 #include "inode.h"
-#include "structs.h"
-#include "disk_emu.h"
 
 // #include "bitmask.h"
 
