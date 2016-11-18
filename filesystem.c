@@ -8,19 +8,53 @@ int fileDescriptorTableLength = 2; // Refers to the last array index
 #define FD_INODE_TABLE 1
 #define FD_FREE_BLOCKS 2
 
-int block_size = 1024;
-
+#define BLOCK_SIZE 1024
+#define FILENAME "my_disk.disk"
+#define NUM_BLOCKS 100
 
 void mksfs(int fresh) {
 	if(fresh) {
-
+		init_fresh_disk(FILENAME, BLOCK_SIZE, NUM_BLOCKS);
 	} else {
-
+		init_disk(FILENAME, BLOCK_SIZE, NUM_BLOCKS);
 	}
 
+	char superblock_buffer[BLOCK_SIZE];
+	read_blocks(0, 1, superblock_buffer);	
 
-	// Populate fileDescriptorTable[0/1/2] w/ superblock info
+	struct superblock superblock = (struct superblock) superblock_buffer;
+	
 
+	if(fresh) {
+		struct empty_inode empty_inode;
+		empty_inode.size = 0;
+
+		for(int i = 0; i < 12; i++) {
+			empty_inode.direct_block[i] = 0;
+		}
+
+		empty_inode.indirect_block = 0;
+	
+		superblock.root_dir = empty_inode;
+		superblock.inode_table = empty_inode;
+		superblock.free_blocks = empty_inode;
+
+		// More stuff here
+	}
+	
+
+	fileDescriptorTable[FD_ROOT_DIR] = superblock.root_dir;
+	fileDescriptorTable[FD_INODE_TABLE] = superblock.inode_table;
+	fileDescriptorTable[FD_FREE_BLOCKS] = superblock.free_blocks;
+
+
+	// Use this on inode table change, perhaps on sfs_open or sfs_save, inode_mark_block, etc.
+
+	// superblock.root_dir = fileDescriptorTable[FD_ROOT_DIR].inode;
+	// superblock.inode_table = fileDescriptorTable[FD_INODE_TABLE].inode;
+	// superblock.free_blocks = fileDescriptorTable[FD_FREE_BLOCKS].inode;
+
+	write_blocks(0, 1, superblock);
 }
 
 

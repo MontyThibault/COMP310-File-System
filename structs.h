@@ -21,7 +21,7 @@ struct superblock {
 	// Here we deviate slightly from the assignment specs.
 	// Everything is stored in 3 inodes within the superblock.
 	// Then all block trickiness/caching is handled generally.
-	inode root_directory;
+	inode root_dir;
 	inode inode_table;
 	inode free_blocks;
 };
